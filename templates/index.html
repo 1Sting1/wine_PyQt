@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WineTech</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <style>
+        body, html {
+            cursor: none;
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            cursor: none;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .step {
+            cursor: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            flex-direction: column;
+        }
+        .active { display: flex; cursor: none;}
+        .container {
+            cursor: none;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+        }
+        .tile {
+            cursor: none;
+            background-color: #f8f9fa;
+            width: 100%;
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 10px;
+        }
+        .tile img {
+            cursor: none;
+            max-width: 100%;
+            max-height: 70%;
+        }
+        .tile:hover { transform: scale(1.05); cursor: none;}
+        .button { margin: 10px; padding: 10px 20px; cursor: none;}
+        #timer { font-size: 18px; color: red; cursor: none;}
+        .loading { font-size: 20px; cursor: none;}
+        .hidden { display: none; cursor: none;}
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #f8f9fa;
+            width: 100%;
+            cursor: none;
+        }
+        .bottle-details {
+            max-width: 800px;
+            margin: 20px;
+            text-align: left;
+            cursor: none;
+        }
+        .bottle-image {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            cursor: none;
+        }
+        .inactive{
+            filter: chroma(100);
+        }
+        .bottle-name {
+            font-size: 2em;
+            margin-bottom: 10px;
+            cursor: none;
+        }
+        .bottle-location {
+            font-style: italic;
+            margin-bottom: 20px;
+            cursor: none;
+        }
+        .bottle-description {
+            margin-bottom: 30px;
+            cursor: none;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            cursor: none;
+        }
+    </style>
+    <script>
+        let currentStep = 0;
+        let selectedSlot = null;
+        let rfidCode = null;
+        let timer;
+        let countdown;
+        let timeLeft;
+
+        function showStep(step) {
+            clearInterval(countdown);
+            currentStep = step;
+            document.querySelectorAll('.step').forEach((el, index) => {
+                el.classList.toggle('active', index === step);
+                if (index === step) {
+                    el.classList.add('animate__animated', 'animate__fadeIn');
+                } else {
+                    el.classList.remove('animate__animated', 'animate__fadeIn');
+                }
+            });
+
+            if (step === 0) {
+                document.querySelectorAll('.tile').forEach(tile => tile.style.display = 'flex');
+                stopTimer();
+            } else {
+                document.querySelectorAll('.tile').forEach(tile => tile.style.display = 'none');
+                if (step > 0) {
+                    startTimer();
+                }
+            }
+        }
+
+        function startTimer() {
+            timeLeft = 60;
+            document.getElementById('timer').textContent = timeLeft;
+            document.getElementById('timer').classList.remove('hidden');
+            countdown = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    resetProgress();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(countdown);
+            document.getElementById('timer').classList.add('hidden');
+        }
+
+        function resetProgress() {
+            document.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('active');
+            });
+            document.getElementById('step-0').classList.add('active');
+            document.querySelectorAll('.tile').forEach(tile => tile.style.display = 'flex');
+            selectedSlot = null;
+            stopTimer();
+        }
+
+        function selectSlot(slot) {
+            fetch(`/bottle/${slot}`)
+            .then(response => response.json())
+            .then(bottle => {
+                selectedSlot = slot;
+                document.getElementById('bottle-image').src = `http://51.250.89.99/bottles/image/${bottle.id}/600`;
+                document.getElementById('bottle-name').textContent = bottle.name;
+                document.getElementById('bottle-location').textContent = bottle.location.replace('\n', ' · ');
+                document.getElementById('bottle-description').textContent = bottle.description;
+                showStep(1);
+            });
+        }
+
+        function selectPortion(portionType) {
+            showStep(2);
+            fetch('/rfid', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.is_valid === false){
+                    alert('Невалидный rfid');
+                    resetProgress();
+                    showStep(0);
+                }
+                else {
+                rfidCode = data.rfid_code;
+                showStep(3); // Show step to press button
+                    {
+                        stopTimer();
+                        fetch('/button', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ slot_number: selectedSlot, portion_type: portionType, rfid: rfidCode })
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.success) {
+                                showStep(4);
+                            } else {
+                                alert(result.message || 'Доступ запрещен или лимит превышен.');
+                                resetProgress();
+                            }
+                        });
+                    };
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showStep(0);
+        });
+    </script>
+</head>
+<body style="cursor: none;">
+    <div id="timer" class="text-right p-2 hidden" style="cursor: none;"></div>
+    <main>
+        <div id="step-0" class="step active container animate__animated animate__fadeIn">
+            {% for bottle in bottles %}
+            {% if bottle.remaining_volume < 120 %}
+                <div class="tile" style="cursor: none;">
+                    <img src="http://51.250.89.99/bottles/image/{{bottle.id}}/300" alt="{{ bottle.name }}" style="filter: grayscale(1)">
+                    <h2>{{ bottle.name }}</h2>
+                    <p>{{ bottle.location | replace('\n', ' · ') }}</p>
+                </div>
+            {% else %}
+                <div class="tile" onclick="selectSlot({{ bottle.slot_number }})" style="cursor: none;">
+                    <img src="http://51.250.89.99/bottles/image/{{bottle.id}}/300" alt="{{ bottle.name }}">
+                    <h2>{{ bottle.name }}</h2>
+                    <p>{{ bottle.location | replace('\n', ' · ') }}</p>
+                </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <div id="step-1" class="step bottle-details">
+            <img id="bottle-image" src="" alt="Bottle Image" class="bottle-image">
+            <h1 id="bottle-name" class="bottle-name"></h1>
+            <p id="bottle-location" class="bottle-location"></p>
+            <p id="bottle-description" class="bottle-description"></p>
+            <div class="buttons">
+                <button class="button btn btn-primary" onclick="selectPortion('small')" style="cursor: none;">Тестовая порция</button>
+                <button class="button btn btn-secondary" onclick="selectPortion('big')" style="cursor: none;">Полная порция</button>
+                <button class="button btn btn-link" onclick="resetProgress()" style="cursor: none;">Назад</button>
+            </div>
+        </div>
+        <div id="step-2" class="step">
+            <h2>Приложите RFID метку</h2>
+            <div class="loading spinner-border text-primary" role="status">
+                <span class="sr-only">Загрузка...</span>
+            </div>
+        </div>
+        <div id="step-3" class="step">
+            <h2>Нажмите подсвеченную кнопку для завершения операции</h2>
+            <button id="complete-button" class="button btn btn-success" style="cursor: none;">Завершить операцию</button>
+        </div>
+        <div id="step-4" class="step">
+            <h2>Операция успешно выполнена!</h2>
+            <button class="button btn btn-info" onclick="resetProgress()" style="cursor: none;">Вернуться в главное меню</button>
+        </div>
+    </main>
+    <footer>
+        &copy; 2024 from S.N.A. for Dmitry Yudin
+    </footer>
+</body>
+</html>
