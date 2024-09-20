@@ -6,8 +6,7 @@ services:
       - "8000:8000"
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
-    environment:
-      - DISPLAY=${DISPLAY}
+
     devices:
       - "/dev/dri:/dev/dri"
       - "/dev/mem:/dev/mem"

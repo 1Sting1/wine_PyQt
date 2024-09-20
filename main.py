@@ -14,18 +14,20 @@ class MainWindow(QMainWindow):
         self.selectedSlot = None
         self.rfidCode = None
         self.timeLeft = 0
+        self.loadStylesheet()
 
         self.initUI()
         self.showStep(0)
 
 
     def loadStylesheet(self):
-        # Открываем файл стилей
-        file = QFile("resources/styles.qss")
-        file.open(QFile.ReadOnly | QFile.Text)
-        stream = QTextStream(file)
-        stylesheet = stream.readAll()
-        self.setStyleSheet(stylesheet)
+        file = QFile("styles.qss")
+        if file.open(QFile.ReadOnly | QFile.Text):
+            stream = QTextStream(file)
+            stylesheet = stream.readAll()
+            self.setStyleSheet(stylesheet)
+        else:
+            print("qss file not found")
 
     def initUI(self):
         self.mainWidget = QWidget()

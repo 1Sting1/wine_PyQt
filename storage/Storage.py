@@ -7,28 +7,27 @@ class Storage:
         
         
     """ Пины подсветки кнопок """
-    __button_Pin_led = {0: (0x20, 4), 1: (0x20, 5), 2: (0x20, 6), 3: (0x20, 7),
-                        4: (0x22, 4), 5: (0x22, 5), 6: (0x22, 6), 7: (0x22, 7)}
+    __button_Pin_led = {0: (0x22, 0), 1: (0x22, 1), 2: (0x22, 2), 3: (0x22, 3),
+                        4: (0x22, 4), 5: (0x22, 5), 6: (0x22, 6), 7: (0x22, 7)} #выход
 
     __led_bottle = {0: (0x23, 0), 1: (0x23, 1), 2: (0x23, 2), 3: (0x23, 3),
-                    4: (0x23, 4), 5: (0x22, 3), 6: (0x23, 6), 7: (0x23, 7)}
+                    4: (0x23, 4), 5: (0x23, 5), 6: (0x23, 6), 7: (0x23, 7)}#выход
     """ Пины для взимодействия с сигналом кнопок """
     __button_Pin = {0: (0x20, 0), 1: (0x20, 1), 2: (0x20, 2), 3: (0x20, 3),
-                    4: (0x22, 0), 5: (0x22, 1), 6: (0x22, 2), 7: (0x22, 3)}
+                    4: (0x20, 4), 5: (0x20, 5), 6: (0x20, 6), 7: (0x20, 7)}#вход
 
     """ Пины для управления насосами (диспенсером) """
     __pump_Pin = {0: (0x21, 0), 1: (0x21, 1), 2: (0x21, 2), 3: (0x21, 3),
-                  4: (0x21, 4), 5: (0x21, 5), 6: (0x21, 6), 7: (0x21, 7)}
-
+                  4: (0x21, 4), 5: (0x21, 5), 6: (0x21, 6), 7: (0x21, 7)}#выход
     # Программа не учитывает нажатие на кнопку.
     # Настроить выборку значения для wait_for_button_press
     # доработать отчищение пинов и вообщем всей программы после завершениия
-    
+
     """ Пин для замены бутылки (Для кнопки) """
-    __button_for_replacement = 36 #Настроить нормальные пины
+    __button_for_replacement = 36  # Настроить нормальные пины
 
     """ Пин для замены бутылки (Для подсветки кнопки) """
-    __button_led_for_replacement = 34 #Настроить нормальные пины
+    __button_led_for_replacement = 34  # Настроить нормальные пины
 
     """ Результат работы программы """
     result_of_program = False
@@ -40,7 +39,7 @@ class Storage:
     __server_url = "http://51.250.89.99"
 
     """Ссылка на сервер для замены бутылки в аппарате"""
-    __server_url_for_replace_bottle= ""
+    __server_url_for_replace_bottle = ""
 
     """Путь к файлу с логами основного цикла программы"""
     __path_to_log_file = "technical_information/log.json"
@@ -67,7 +66,7 @@ class Storage:
         if not hasattr(cls, 'instance'):
             cls.instance = super(Storage, cls).__new__(cls)
         return cls.instance
-    
+
     #     def __init__(self):
     # #         self.clean()
     #         self.setup()
@@ -91,6 +90,10 @@ class Storage:
     #         element.set_mode(status)
 
     @property
+    def get_all_leds_pins(self) -> list:
+        return list(self.__button_Pin_led.values())
+
+    @property
     def get_log_file_path(self) -> str:
         """
         Возвращаем путь к файлу с логами
@@ -103,7 +106,7 @@ class Storage:
         Возвращаем путь к файлу swap'a
         """
         return self.__path_to_swap_file
-    
+
     @property
     def get_system_log_file_path(self):
         """
@@ -132,23 +135,29 @@ class Storage:
         """
         return self.__path_to_tech_file
 
-    def dispander_pin(self, number_of_bottle: int):
+    def dispander_pin(self, bottle_number: int):
         """
         Возвращаем номер пина нужного нам насоса
         """
-        return self.__pump_Pin.get(number_of_bottle)
+        return self.__pump_Pin.get(bottle_number)
 
     def led_pin(self, number_of_button: int):
         """
-        ID нужного нам пина подстветки по номеру кнопки (по раскладке BOARD)
+        ID нужного нам пина подстветки по номеру кнопки на шине I2C
         """
         return self.__button_Pin_led.get(number_of_button)
 
     def button_pin(self, number_of_button: int):
         """
-        ID пина по номеру кнопки
+        ID нужного нам пина кнопки по номеру кнопки на шине I2C
         """
         return self.__button_Pin.get(number_of_button)
+
+    def bottle_led(self, number_of_button: int):
+        """
+        ID нужного нам пина подсветки бутылки по номеру кнопки на шине I2C
+        """
+        return self.__led_bottle.get(number_of_button)
 
     @property
     def button_for_replacement(self):
@@ -199,7 +208,7 @@ class Storage:
         return self.__link_for_rfid
 
     @property
-    def server_url_for_replace_bottle (self) -> str:
+    def server_url_for_replace_bottle(self) -> str:
         """
         Получение ссылку для замены бутылки в аппарате
         """

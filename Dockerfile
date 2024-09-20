@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     python3-rpi.gpio \
     python3-smbus \
     python3-spidev \
+
     i2c-tools \
     chromium \
     x11-apps \
